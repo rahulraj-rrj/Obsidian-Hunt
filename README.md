@@ -1,6 +1,8 @@
 # 🛰️ OBSIDIAN HUNT // Mission Control Center
 ### *A Premium, Immersive Aerospace Operations Dashboard & Telemetry Visualizer*
 
+🔗 **Live Console Feed**: [obsidian-hunt.netlify.app](https://obsidian-hunt.netlify.app/)
+
 ---
 
 ## 📌 Mission Objective (Project Overview)
