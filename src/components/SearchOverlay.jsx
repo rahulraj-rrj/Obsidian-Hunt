@@ -77,7 +77,7 @@ export default function SearchOverlay({ isOpen, onClose, onSelectLaunch }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97, y: -10 }}
           transition={{ duration: 0.2 }}
-          className="w-full max-w-xl bg-cyber-slate/90 border border-neon-cyan/20 backdrop-blur-xl rounded-lg shadow-[0_0_50px_rgba(0,240,255,0.15)] overflow-hidden relative z-10"
+          className="w-full max-w-xl bg-cyber-slate/90 border border-neon-cyan/20 backdrop-blur-xl rounded-lg shadow-[0_0_50px_rgba(255,158,0,0.15)] overflow-hidden relative z-10"
         >
           {/* Input Header */}
           <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-space-black/50">

@@ -29,7 +29,7 @@ export default function Stats() {
       suffix: '',
       icon: Rocket,
       accent: 'text-neon-cyan',
-      glow: 'shadow-[0_0_15px_rgba(0,240,255,0.15)] border-neon-cyan/20 bg-neon-cyan/5',
+      glow: 'shadow-[0_0_15px_rgba(255,158,0,0.15)] border-neon-cyan/20 bg-neon-cyan/5',
       desc: 'Cumulative orbital insertions'
     },
     {

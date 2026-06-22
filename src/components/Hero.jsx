@@ -85,7 +85,7 @@ export default function Hero({ onExploreClick, onWatchMission }) {
       {/* Earth rotating in the background */}
       <div className="absolute right-[-15%] top-[10%] w-[600px] h-[600px] rounded-full border border-neon-cyan/10 bg-radial from-nebula-navy/40 to-space-black pointer-events-none z-0 hidden lg:block overflow-hidden">
         {/* Glow halo */}
-        <div className="absolute inset-0 rounded-full border border-neon-cyan/5 shadow-[inset_0_0_80px_rgba(0,240,255,0.15)] animate-pulse" />
+        <div className="absolute inset-0 rounded-full border border-neon-cyan/5 shadow-[inset_0_0_80px_rgba(255,158,0,0.15)] animate-pulse" />
         {/* Continents overlay using custom spinning animation */}
         <motion.div 
           animate={{ rotate: 360 }}
@@ -121,7 +121,7 @@ export default function Hero({ onExploreClick, onWatchMission }) {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-4xl md:text-6xl font-black font-display tracking-tight text-white mb-4 uppercase leading-none"
           >
-            OBSIDIAN <span className="text-neon-cyan font-bold drop-shadow-[0_0_15px_rgba(0,240,255,0.4)]">HUNT</span>
+            OBSIDIAN <span className="text-neon-cyan font-bold drop-shadow-[0_0_15px_rgba(255,158,0,0.4)]">HUNT</span>
           </motion.h1>
 
           <motion.p
@@ -164,7 +164,7 @@ export default function Hero({ onExploreClick, onWatchMission }) {
                 <div className="text-[9px] text-slate-500 uppercase tracking-widest mt-1">MINS</div>
               </div>
               <div className="bg-cyber-slate/40 border border-white/5 p-3 rounded">
-                <div className="text-2xl md:text-4xl font-extrabold text-neon-cyan font-mono tabular-nums drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]">{padZero(timeLeft.seconds)}</div>
+                <div className="text-2xl md:text-4xl font-extrabold text-neon-cyan font-mono tabular-nums drop-shadow-[0_0_8px_rgba(255,158,0,0.4)]">{padZero(timeLeft.seconds)}</div>
                 <div className="text-[9px] text-slate-500 uppercase tracking-widest mt-1">SECS</div>
               </div>
             </div>
@@ -179,7 +179,7 @@ export default function Hero({ onExploreClick, onWatchMission }) {
           >
             <button
               onClick={onExploreClick}
-              className="flex items-center gap-2 bg-neon-cyan hover:bg-neon-cyan/90 text-space-black font-display font-extrabold text-xs px-6 py-3.5 rounded transition-all cursor-pointer shadow-[0_0_20px_rgba(0,240,255,0.4)]"
+              className="flex items-center gap-2 bg-neon-cyan hover:bg-neon-cyan/90 text-space-black font-display font-extrabold text-xs px-6 py-3.5 rounded transition-all cursor-pointer shadow-[0_0_20px_rgba(255,158,0,0.4)]"
             >
               EXPLORE MISSIONS <ArrowRight size={14} />
             </button>
@@ -197,7 +197,7 @@ export default function Hero({ onExploreClick, onWatchMission }) {
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="lg:col-span-5 w-full bg-cyber-slate/20 border border-neon-cyan/20 backdrop-blur-md rounded-lg p-6 font-mono overflow-hidden relative shadow-[inset_0_0_30px_rgba(0,240,255,0.05)] scanlines"
+          className="lg:col-span-5 w-full bg-cyber-slate/20 border border-neon-cyan/20 backdrop-blur-md rounded-lg p-6 font-mono overflow-hidden relative shadow-[inset_0_0_30px_rgba(255,158,0,0.05)] scanlines"
         >
           {/* Neon cyber line border */}
           <div className="absolute top-0 left-0 w-8 h-[2px] bg-neon-cyan" />

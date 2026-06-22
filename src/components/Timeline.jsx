@@ -1,100 +1,368 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Milestone, Clock, Calendar } from 'lucide-react';
+import { Compass, Calendar, Zap, Clock, Orbit, Target, ArrowRight, Link } from 'lucide-react';
 import { UPCOMING_LAUNCHES } from '../data/mockLaunchData';
 
 export default function Timeline({ onSelectLaunch }) {
-  // Sort launches by date ascending
+  const [expandedItems, setExpandedItems] = useState({});
+  const [rotationAngle, setRotationAngle] = useState(0);
+  const [autoRotate, setAutoRotate] = useState(true);
+  const [pulseEffect, setPulseEffect] = useState({});
+  const [activeNodeId, setActiveNodeId] = useState(null);
+  
+  const containerRef = useRef(null);
+  const orbitRef = useRef(null);
+
+  // Parse and map launches into timeline data structure
   const sortedLaunches = [...UPCOMING_LAUNCHES].sort(
     (a, b) => new Date(a.launchDate) - new Date(b.launchDate)
   );
 
+  const timelineData = sortedLaunches.map((launch, idx) => {
+    return {
+      id: idx + 1,
+      originalId: launch.id,
+      title: launch.missionName,
+      rocketName: launch.rocketName,
+      date: new Date(launch.launchDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+      content: launch.description,
+      launchSite: launch.launchSite,
+      targetOrbit: launch.targetOrbit,
+      energy: launch.payloadMass ? Math.min(100, Math.round((launch.payloadMass / 22800) * 100)) : 80,
+      status: idx === 0 ? 'in-progress' : idx < 3 ? 'completed' : 'pending',
+      icon: idx % 3 === 0 ? Orbit : idx % 3 === 1 ? Target : Compass,
+      relatedIds: []
+    };
+  });
+
+  // Populate relatedIds based on sharing the same rocket type
+  timelineData.forEach((item) => {
+    const related = timelineData
+      .filter((l) => l.rocketName === item.rocketName && l.id !== item.id)
+      .map((l) => l.id);
+    item.relatedIds = related;
+  });
+
+  const handleContainerClick = (e) => {
+    if (e.target === containerRef.current || e.target === orbitRef.current) {
+      setExpandedItems({});
+      setActiveNodeId(null);
+      setPulseEffect({});
+      setAutoRotate(true);
+    }
+  };
+
+  const toggleItem = (id) => {
+    setExpandedItems((prev) => {
+      const newState = { ...prev };
+      Object.keys(newState).forEach((key) => {
+        if (parseInt(key) !== id) {
+          newState[parseInt(key)] = false;
+        }
+      });
+      newState[id] = !prev[id];
+
+      if (!prev[id]) {
+        setActiveNodeId(id);
+        setAutoRotate(false);
+
+        const currentItem = timelineData.find((item) => item.id === id);
+        const relatedItems = currentItem ? currentItem.relatedIds : [];
+        const newPulseEffect = {};
+        relatedItems.forEach((relId) => {
+          newPulseEffect[relId] = true;
+        });
+        setPulseEffect(newPulseEffect);
+        centerViewOnNode(id);
+      } else {
+        setActiveNodeId(null);
+        setAutoRotate(true);
+        setPulseEffect({});
+      }
+
+      return newState;
+    });
+  };
+
+  // Auto rotation loop using requestAnimationFrame for butter-smooth animation
+  useEffect(() => {
+    if (!autoRotate) return;
+
+    let animationFrameId;
+    let lastTime = performance.now();
+
+    const updateRotation = (time) => {
+      const delta = time - lastTime;
+      lastTime = time;
+
+      // Speed of rotation: approx 4 degrees per second (4 / 1000 = 0.004 degrees per ms)
+      const speed = 0.004 * delta;
+
+      setRotationAngle((prev) => (prev + speed) % 360);
+      animationFrameId = requestAnimationFrame(updateRotation);
+    };
+
+    animationFrameId = requestAnimationFrame(updateRotation);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [autoRotate]);
+
+  const centerViewOnNode = (nodeId) => {
+    const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
+    const totalNodes = timelineData.length;
+    const targetAngle = (nodeIndex / totalNodes) * 360;
+    setRotationAngle(270 - targetAngle);
+  };
+
+  // responsive layout parameters
+  const [dimensions, setDimensions] = useState({
+    radius: typeof window !== 'undefined' && window.innerWidth < 768 ? 125 : 185,
+    size: typeof window !== 'undefined' && window.innerWidth < 768 ? 320 : 500
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setDimensions({
+        radius: window.innerWidth < 768 ? 125 : 185,
+        size: window.innerWidth < 768 ? 320 : 500
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const calculateNodePosition = (index, total) => {
+    const angle = ((index / total) * 360 + rotationAngle) % 360;
+    const radian = (angle * Math.PI) / 180;
+
+    const x = dimensions.radius * Math.cos(radian);
+    const y = dimensions.radius * Math.sin(radian);
+
+    const zIndex = Math.round(100 + 50 * Math.cos(radian));
+    const opacity = Math.max(
+      0.35,
+      Math.min(1, 0.35 + 0.65 * ((1 + Math.sin(radian)) / 2))
+    );
+
+    return { x, y, angle, zIndex, opacity };
+  };
+
+  const getStatusBadgeStyles = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+      case 'in-progress':
+        return 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40 animate-pulse';
+      case 'pending':
+        return 'bg-neutral-800 text-slate-400 border border-white/5';
+      default:
+        return 'bg-neutral-800 text-slate-400 border border-white/5';
+    }
+  };
+
   return (
-    <section id="timeline" className="py-20 px-6 max-w-4xl mx-auto select-none border-b border-white/5 relative">
+    <section 
+      id="timeline" 
+      className="py-24 px-6 border-b border-white/5 relative overflow-hidden flex flex-col items-center justify-center min-h-[700px]"
+      ref={containerRef}
+      onClick={handleContainerClick}
+    >
       <div className="absolute inset-0 cyber-grid opacity-5 pointer-events-none" />
 
       {/* Header */}
-      <div className="text-center mb-16 relative z-10">
-        <div className="text-[10px] text-neon-cyan font-bold tracking-widest uppercase mb-1">
+      <div className="text-center mb-10 relative z-20 pointer-events-none select-none">
+        <div className="text-[10px] text-rocket-orange font-bold tracking-widest uppercase mb-1">
           TRAJECTORY ANALYSIS & SCHEDULE
         </div>
         <h2 className="text-2xl md:text-3xl font-bold font-display text-white uppercase">
-          LAUNCH TIMELINE
+          RADIAL ORBITAL TIMELINE
         </h2>
-        <div className="h-[1px] w-20 bg-neon-cyan mx-auto mt-4 shadow-[0_0_8px_rgba(0,240,255,0.8)]" />
+        <div className="h-[1px] w-20 bg-neon-cyan mx-auto mt-4 shadow-[0_0_8px_rgba(255,158,0,0.8)]" />
       </div>
 
-      {/* Vertical Timeline Track */}
-      <div className="relative border-l border-white/10 ml-4 md:ml-32 py-4 relative z-10">
-        {/* Visual Line Glow Overlay */}
-        <div className="absolute left-[-1px] top-0 bottom-0 w-[1.5px] bg-gradient-to-b from-neon-cyan via-rocket-orange to-transparent opacity-60 shadow-[0_0_8px_rgba(0,240,255,0.4)]" />
-
-        {sortedLaunches.map((launch, idx) => {
-          const isEven = idx % 2 === 0;
-          return (
-            <div key={launch.id} className="mb-16 relative pl-8 md:pl-12">
-              {/* Pulsing Timeline Node Dot */}
-              <div className="absolute left-[-8.5px] top-1.5 z-20 flex items-center justify-center">
-                <span className={`absolute h-4 w-4 rounded-full opacity-70 animate-ping ${
-                  idx === 0 ? 'bg-neon-cyan' : 'bg-white/40'
-                }`} />
-                <span className={`h-4.5 w-4.5 rounded-full border border-space-black ${
-                  idx === 0 
-                    ? 'bg-neon-cyan shadow-[0_0_12px_rgba(0,240,255,0.8)]' 
-                    : 'bg-cyber-slate border-white/20'
-                }`} />
-              </div>
-
-              {/* Year/Time tag on left (Only visible on MD/large viewports) */}
-              <div className="hidden md:block absolute left-[-140px] top-1 text-right w-24">
-                <span className="text-[10px] font-mono text-slate-500 block uppercase">TARGET TIME</span>
-                <span className="text-xs font-bold font-mono text-slate-200 mt-1 block">
-                  {new Date(launch.launchDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                </span>
-              </div>
-
-              {/* Content Panel Box */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="bg-cyber-slate/15 hover:bg-cyber-slate/30 border border-white/5 hover:border-neon-cyan/20 backdrop-blur-md p-5 rounded-lg text-left transition-all duration-300 relative group cursor-pointer"
-                onClick={() => onSelectLaunch(launch)}
-              >
-                {/* Visual grid inside box */}
-                <div className="absolute inset-0 cyber-grid-dense opacity-5 pointer-events-none rounded-lg" />
-
-                {/* Subtitle / Status */}
-                <div className="flex items-center justify-between gap-4 mb-2 text-[10px] font-mono text-slate-500">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar size={10} className="text-neon-cyan" />
-                    {new Date(launch.launchDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span className="text-neon-cyan/60">{launch.rocketName} // {launch.targetOrbit.split('/')[0]}</span>
-                </div>
-
-                {/* Title */}
-                <h3 className="text-base font-bold text-white group-hover:text-neon-cyan transition-colors font-display uppercase tracking-tight">
-                  {launch.missionName}
-                </h3>
-
-                {/* Description */}
-                <p className="text-[11px] text-slate-400 font-sans leading-relaxed mt-2.5">
-                  {launch.description}
-                </p>
-
-                {/* Footer specs */}
-                <div className="border-t border-white/5 pt-3 mt-4 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                  <span>SITE: {launch.launchSite.split(',')[0]}</span>
-                  <span className="text-neon-cyan flex items-center gap-1">
-                    <Target size={10} /> DETAILS_CONSOLE
-                  </span>
-                </div>
-              </motion.div>
+      {/* Orbit Visualization */}
+      <div 
+        className="relative flex items-center justify-center z-10 select-none"
+        style={{
+          width: `${dimensions.size}px`,
+          height: `${dimensions.size}px`
+        }}
+      >
+        <div
+          ref={orbitRef}
+          className="absolute w-full h-full flex items-center justify-center transition-transform duration-700 ease-out"
+          style={{ perspective: '1000px' }}
+        >
+          {/* Central Sun/Glow Core representing Mission Control */}
+          <div className="absolute w-20 h-20 rounded-full bg-gradient-to-br from-rocket-orange via-neon-cyan to-amber-500 animate-pulse flex items-center justify-center z-10 shadow-[0_0_50px_rgba(255,158,0,0.25)] border border-neon-cyan/20">
+            <div className="absolute inset-[-10px] rounded-full border border-white/10 animate-ping opacity-20" />
+            <div className="absolute inset-[-20px] rounded-full border border-white/5 animate-ping opacity-10" style={{ animationDelay: '0.4s' }} />
+            <div className="w-10 h-10 rounded-full bg-[#020204]/90 flex items-center justify-center border border-white/10">
+              <Clock size={16} className="text-neon-cyan animate-pulse" />
             </div>
-          );
-        })}
+          </div>
+
+          {/* Dotted Radial Orbit Track */}
+          <div 
+            className="absolute rounded-full border border-dashed border-white/10"
+            style={{
+              width: `${dimensions.radius * 2}px`,
+              height: `${dimensions.radius * 2}px`
+            }}
+          />
+
+          {/* Render Orbiting Launches */}
+          {timelineData.map((item, index) => {
+            const position = calculateNodePosition(index, timelineData.length);
+            const isExpanded = expandedItems[item.id];
+            const isPulsing = pulseEffect[item.id];
+            const Icon = item.icon;
+
+            const nodeStyle = {
+              transform: `translate(${position.x}px, ${position.y}px)`,
+              zIndex: isExpanded ? 100 : position.zIndex,
+              opacity: isExpanded ? 1 : position.opacity
+            };
+
+            return (
+              <div
+                key={item.id}
+                className={`absolute ${autoRotate ? 'transition-none' : 'transition-all duration-700 ease-out'}`}
+                style={nodeStyle}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleItem(item.id);
+                }}
+              >
+                {/* Node Glow Halo */}
+                <div
+                  className={`absolute rounded-full -inset-3 transition-opacity ${
+                    isPulsing ? 'animate-pulse opacity-100' : 'opacity-0 hover:opacity-40'
+                  }`}
+                  style={{
+                    background: 'radial-gradient(circle, rgba(255,158,0,0.15) 0%, transparent 70%)',
+                    width: `${item.energy * 0.4 + 48}px`,
+                    height: `${item.energy * 0.4 + 48}px`,
+                    left: `-${(item.energy * 0.4 + 48 - 36) / 2}px`,
+                    top: `-${(item.energy * 0.4 + 48 - 36) / 2}px`
+                  }}
+                />
+
+                {/* Main Interactive Button Node */}
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center border cursor-pointer transition-all duration-300 ${
+                    isExpanded
+                      ? 'bg-neon-cyan text-space-black border-white shadow-[0_0_20px_rgba(255,158,0,0.5)] scale-125'
+                      : isPulsing
+                      ? 'bg-rocket-orange/20 border-rocket-orange text-rocket-orange animate-pulse scale-110'
+                      : 'bg-[#020204] border-white/20 text-slate-400 hover:text-white hover:border-white/40'
+                  }`}
+                >
+                  <Icon size={14} className={isExpanded ? 'animate-spin-slow' : ''} />
+                </div>
+
+                {/* Node Title Label */}
+                <div
+                  className={`absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-mono font-bold tracking-widest transition-all duration-300 pointer-events-none uppercase ${
+                    isExpanded ? 'text-neon-cyan scale-110 font-black' : 'text-slate-500'
+                  }`}
+                >
+                  {item.title.split(' ')[0]}
+                </div>
+
+                {/* Detail Card Overlay */}
+                {isExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="absolute top-14 left-1/2 -translate-x-1/2 w-64 bg-neutral-950/95 border border-neon-cyan/30 backdrop-blur-md p-4 rounded shadow-[0_10px_35px_rgba(0,0,0,0.8)] text-left z-50 font-mono scanlines"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Anchor line */}
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-px h-3 bg-neon-cyan/40" />
+                    
+                    <div className="flex items-center justify-between text-[9px] border-b border-white/10 pb-2 mb-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${getStatusBadgeStyles(item.status)}`}>
+                        {item.status.replace('-', ' ')}
+                      </span>
+                      <span className="text-slate-400">{item.date}</span>
+                    </div>
+
+                    <h4 className="text-xs font-black text-white uppercase tracking-wider mb-2">
+                      {item.title}
+                    </h4>
+
+                    <p className="text-[10px] text-slate-400 font-sans leading-relaxed mb-4">
+                      {item.content}
+                    </p>
+
+                    {/* Specifications */}
+                    <div className="bg-space-black/55 p-2.5 rounded border border-white/5 text-[9px] text-slate-400 flex flex-col gap-1.5 mb-4">
+                      <div className="flex justify-between">
+                        <span>LAUNCH_SITE</span>
+                        <span className="text-white">{item.launchSite.split(',')[0]}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>TARGET_ORBIT</span>
+                        <span className="text-white">{item.targetOrbit}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>VEHICLE</span>
+                        <span className="text-neon-cyan">{item.rocketName}</span>
+                      </div>
+                    </div>
+
+                    {/* Energy/Payload indicators */}
+                    <div className="mb-4">
+                      <div className="flex justify-between text-[9px] text-slate-500 mb-1">
+                        <span className="flex items-center gap-1"><Zap size={9} /> PAYLOAD RATING</span>
+                        <span className="font-bold text-white">{item.energy}%</span>
+                      </div>
+                      <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-rocket-orange to-neon-cyan"
+                          style={{ width: `${item.energy}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Footer Call Actions */}
+                    <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                      {item.relatedIds.length > 0 && (
+                        <div className="flex flex-col gap-1 text-[8px] text-slate-500">
+                          <span className="flex items-center gap-0.5"><Link size={8} /> CONNECTED FLIGHTS</span>
+                          <div className="flex flex-wrap gap-1">
+                            {item.relatedIds.map((relId) => {
+                              const relatedItem = timelineData.find((l) => l.id === relId);
+                              return (
+                                <button
+                                  key={relId}
+                                  onClick={() => toggleItem(relId)}
+                                  className="px-1.5 py-0.5 bg-neutral-900 border border-white/10 hover:border-neon-cyan/40 text-slate-300 hover:text-white rounded text-[8px] flex items-center gap-0.5 cursor-pointer"
+                                >
+                                  {relatedItem?.title.split(' ')[0]} <ArrowRight size={6} />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={() => {
+                          const originalLaunch = sortedLaunches.find((l) => l.id === item.originalId);
+                          if (originalLaunch) onSelectLaunch(originalLaunch);
+                        }}
+                        className="w-full py-1.5 bg-neon-cyan hover:bg-neon-cyan/90 text-space-black font-extrabold text-[10px] rounded transition-all text-center flex items-center justify-center gap-1 glow-cyan cursor-pointer mt-1"
+                      >
+                        <Compass size={10} /> ACCESS FLIGHT DESK
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

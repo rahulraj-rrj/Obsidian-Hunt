@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Play, TrendingUp, Gauge, RefreshCw, Layers } from 'lucide-react';
 import { UPCOMING_LAUNCHES } from '../data/mockLaunchData';
+import ImageReveal from './ImageReveal';
 
 export default function FeaturedMission({ onSelectLaunch }) {
   const mission = UPCOMING_LAUNCHES[0]; // Starship Flight 7
@@ -44,7 +45,7 @@ export default function FeaturedMission({ onSelectLaunch }) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Cyber Grid lines
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.07)';
+      ctx.strokeStyle = 'rgba(255, 158, 0, 0.07)';
       ctx.lineWidth = 1;
 
       // Draw grid vertical lines
@@ -64,7 +65,7 @@ export default function FeaturedMission({ onSelectLaunch }) {
       }
 
       // Draw trajectory line
-      ctx.strokeStyle = '#00f0ff';
+      ctx.strokeStyle = '#ffa200';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       
@@ -88,13 +89,13 @@ export default function FeaturedMission({ onSelectLaunch }) {
 
       // Draw outer pulse ring at the rocket tip
       const activePt = points[points.length - 1];
-      ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
+      ctx.fillStyle = 'rgba(255, 158, 0, 0.2)';
       ctx.beginPath();
       ctx.arc(activePt.x - 2, activePt.y, 8 + Math.sin(t * 3) * 3, 0, Math.PI * 2);
       ctx.fill();
 
       // Draw core rocket dot
-      ctx.fillStyle = '#ff6b00';
+      ctx.fillStyle = '#ff4000';
       ctx.beginPath();
       ctx.arc(activePt.x - 2, activePt.y, 4, 0, Math.PI * 2);
       ctx.fill();
@@ -131,20 +132,26 @@ export default function FeaturedMission({ onSelectLaunch }) {
       {/* Widescreen Banner Card */}
       <div className="bg-cyber-slate/15 border border-white/10 rounded-lg overflow-hidden relative z-10 grid grid-cols-1 lg:grid-cols-12 shadow-2xl">
         {/* Parallax background panel */}
-        <div 
-          className="lg:col-span-7 h-80 lg:h-auto min-h-[300px] relative border-r border-white/5 bg-cover bg-center"
-          style={{
-            backgroundImage: `linear-gradient(to right, rgba(2, 2, 4, 0.95) 10%, rgba(2, 2, 4, 0.3) 100%), url('${mission.image}')`,
-          }}
-        >
+        <div className="lg:col-span-7 h-80 lg:h-auto min-h-[300px] relative border-r border-white/5 overflow-hidden group">
+          
+          {/* Interactive ImageReveal underlay */}
+          <ImageReveal 
+            src={mission.image} 
+            alt={mission.missionName}
+            className="absolute inset-0 w-full h-full"
+          />
+
+          {/* Left-to-right dark gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-space-black via-space-black/55 to-transparent pointer-events-none z-10" />
+
           {/* Logo brand marker */}
-          <div className="absolute top-6 left-6 flex items-center gap-2 bg-space-black/75 px-3 py-1.5 rounded border border-white/10 text-[9px] text-slate-300 font-mono">
+          <div className="absolute top-6 left-6 flex items-center gap-2 bg-space-black/75 px-3 py-1.5 rounded border border-white/10 text-[9px] text-slate-300 font-mono z-20">
             <Layers size={10} className="text-rocket-orange animate-pulse" />
             <span>SYS_STAGE: S1/S2 HOOKED</span>
           </div>
 
           {/* Description Content */}
-          <div className="absolute bottom-6 left-6 right-6 text-left">
+          <div className="absolute bottom-6 left-6 right-6 text-left z-20">
             <span className="text-[9px] bg-rocket-orange/15 text-rocket-orange border border-rocket-orange/30 px-2 py-0.5 rounded uppercase font-bold tracking-wider font-mono">
               FLIGHT SYSTEM TEST
             </span>

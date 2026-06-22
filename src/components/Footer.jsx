@@ -61,25 +61,6 @@ export default function Footer({ onNavigate }) {
           </div>
         </div>
       </footer>
-
-      {/* Floating Bottom Mobile Nav Dock (Visible under 768px) */}
-      <div className="md:hidden fixed bottom-6 inset-x-0 z-40 flex justify-center px-4 font-mono select-none">
-        <div className="bg-space-black/80 border border-white/10 backdrop-blur-xl rounded-full p-2 flex items-center justify-around w-full max-w-sm shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
-          {mobileNavItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleLinkClick(item.id)}
-                className="flex flex-col items-center justify-center p-2 rounded-full hover:bg-neon-cyan/15 text-slate-400 hover:text-neon-cyan transition-all cursor-pointer"
-              >
-                <Icon size={18} />
-                <span className="text-[7px] mt-0.5 scale-90 uppercase tracking-widest">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
     </>
   );
 }

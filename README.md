@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Vite-8-purple?style=for-the-badge&logo=vite&logoColor=FFD62E" alt="Vite 8" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=38B2AC" alt="Tailwind CSS v4" />
   <img src="https://img.shields.io/badge/Three.js-WebGL-000000?style=for-the-badge&logo=three.js&logoColor=white" alt="Three.js" />
-  <img src="https://img.shields.io/badge/Status-Operational-00f0ff?style=for-the-badge" alt="Status" />
+  <img src="https://img.shields.io/badge/Status-Operational-ff9e00?style=for-the-badge" alt="Status" />
 </p>
 
 <p align="center">
@@ -102,6 +102,18 @@ graph TD
   - **Initiate Flight**: Resets indicators and plots a real-time velocity curve.
   - **Abort Command**: Flashes emergency red alerts, triggers CRT scanline flickering, and applies a shake vibration effect to the entire dashboard.
 
+### 8. `ShaderBackground.jsx` | WebGL2 Cosmic Nebula Underlay
+- Compiles and runs a high-performance custom fragment shader rendering fractal noise clouds and space nebulae.
+- Dynamically responds to pointer events, screen size changes, and elapsed time with low-overhead animation frame loops.
+
+### 9. `ImageReveal.jsx` | Interactive Spotlight Mask
+- An advanced hover-based masking effect that reveals sharp, clear imagery under the cursor while keeping the rest blurred and dark.
+- Incorporates responsive cursor radius scaling, coordinate position lerping, and a subtle glowing light leak follower.
+
+### 10. `FlippingCard.jsx` | 3D Double-Sided Cards
+- A reusable component enabling smooth 3D card flips on hover, keyboard interaction, or tap.
+- Fully supports dual-faced React nodes with backface-visibility protection.
+
 ---
 
 ## 🎨 Cybernetic Theme & Design Tokens
@@ -112,10 +124,10 @@ Obsidian Hunt's design language is built around Tailwind CSS v4 custom theme tok
 | Swatch | Color | HEX | CSS Variable | Purpose |
 | :---: | :--- | :--- | :--- | :--- |
 | <span style="color:#020204; font-size:1.5rem">■</span> | Space Black | `#020204` | `--color-space-black` | Deep void canvas background |
-| <span style="color:#090d1a; font-size:1.5rem">■</span> | Nebula Navy | `#090d1a` | `--color-nebula-navy` | Mid-tone background and secondary panels |
-| <span style="color:#13192b; font-size:1.5rem">■</span> | Cyber Slate | `#13192b` | `--color-cyber-slate` | UI borders and inactive element blocks |
-| <span style="color:#00f0ff; font-size:1.5rem">■</span> | Neon Cyan | `#00f0ff` | `--color-neon-cyan` | Primary HUD accents, active state glows, and telemetry paths |
-| <span style="color:#ff6b00; font-size:1.5rem">■</span> | Rocket Orange | `#ff6b00` | `--color-rocket-orange` | Critical alerts, ignition trajectories, and countdown timers |
+| <span style="color:#0a0806; font-size:1.5rem">■</span> | Nebula Navy | `#0a0806` | `--color-nebula-navy` | Warm obsidian carbon charcoal panel background |
+| <span style="color:#1c1511; font-size:1.5rem">■</span> | Cyber Slate | `#1c1511` | `--color-cyber-slate` | Warm slate dark-brown UI borders and inactive blocks |
+| <span style="color:#ff9e00; font-size:1.5rem">■</span> | Neon Cyan | `#ff9e00` | `--color-neon-cyan` | Primary HUD accents, active state glows, and telemetry paths (re-mapped to glowing gold/amber!) |
+| <span style="color:#ff4000; font-size:1.5rem">■</span> | Rocket Orange | `#ff4000` | `--color-rocket-orange` | Critical alerts, ignition trajectories, and countdown timers (fire orange-red) |
 
 ### Visual FX
 - **CRT Scanline Overlay**: A repeating linear-gradient overlay loop mimicking military radar screens.
@@ -146,7 +158,10 @@ src/
     ├── LaunchHistory.jsx # Searchable log database with status filters
     ├── SearchOverlay.jsx # Spotlight search overlay (Cmd+K)
     ├── ConsoleModal.jsx  # Flight controller desk (Initiate/Abort commands, shakes)
-    └── Footer.jsx        # Mobile navigation dock
+    ├── Footer.jsx        # Mobile navigation dock
+    ├── FlippingCard.jsx  # Reusable 3D double-sided interactive flip card
+    ├── ImageReveal.jsx   # Spotlight cursor hover reveal mask
+    └── ShaderBackground.jsx # WebGL2 interactive cosmic nebula rendering canvas
 ```
 
 ---

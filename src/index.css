@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Orbitron', system-ui, sans-serif;
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   
   --color-space-black: #020204;
-  --color-nebula-navy: #090d1a;
-  --color-cyber-slate: #13192b;
-  --color-neon-cyan: #00f0ff;
-  --color-rocket-orange: #ff6b00;
+  --color-nebula-navy: #0a0806;   /* Warm obsidian carbon charcoal */
+  --color-cyber-slate: #1c1511;   /* Warm slate dark-brown */
+  --color-neon-cyan: #ff9e00;     /* Re-mapped to glowing gold/amber! */
+  --color-rocket-orange: #ff4000; /* Fire orange-red */
 }
 
 /* Custom Telemetry Scrollbar */
@@ -21,32 +21,32 @@
   background: rgba(2, 2, 4, 0.5);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 240, 255, 0.2);
+  background: rgba(255, 158, 0, 0.2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 240, 255, 0.5);
+  background: rgba(255, 158, 0, 0.5);
 }
 
 /* Cybernetic Grid & Visual Effects */
 .cyber-grid {
   background-size: 40px 40px;
   background-image: 
-    linear-gradient(to right, rgba(0, 240, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 158, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 158, 0, 0.04) 1px, transparent 1px);
 }
 
 .cyber-grid-dense {
   background-size: 16px 16px;
   background-image: 
-    linear-gradient(to right, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 158, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 158, 0, 0.03) 1px, transparent 1px);
 }
 
 /* Glow Elements */
 .glow-cyan {
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
-  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 15px rgba(255, 158, 0, 0.25);
+  text-shadow: 0 0 8px rgba(255, 158, 0, 0.5);
 }
 
 .glow-orange {
@@ -172,7 +172,7 @@
 
 /* Reset baseline style for dashboard text positioning */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Orbitron', system-ui, sans-serif;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
   letter-spacing: 0.05em;
 }
 
@@ -189,3 +189,43 @@ h1, h2, h3, h4, h5, h6 {
 body {
   background-color: #020204;
 }
+
+/* 3D Flipping Card Styles */
+.flip-card {
+  perspective: 1000px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner,
+.flip-card:focus-within .flip-card-inner,
+.flip-card.is-flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden; /* Safari */
+  backface-visibility: hidden;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.flip-card-front {
+  background-color: transparent;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+

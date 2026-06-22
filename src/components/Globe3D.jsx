@@ -1,213 +1,419 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import * as THREE from 'three';
-import { Globe, MapPin, Shield, Layers } from 'lucide-react';
+import * as d3 from 'd3';
+import { Globe, MapPin, Layers } from 'lucide-react';
 import { LAUNCH_SITES } from '../data/mockLaunchData';
 
 export default function Globe3D() {
-  const mountRef = useRef(null);
+  const containerRef = useRef(null);
+  const canvasRef = useRef(null);
   const [selectedSite, setSelectedSite] = useState(LAUNCH_SITES[0]); // Default to Kennedy Space Center
-  const [hoveredSiteName, setHoveredSiteName] = useState(null);
+  const [hoveredSite, setHoveredSite] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Store parsed halftone dots in ref to avoid recalculation
+  const dotsRef = useRef([]);
+  const landFeaturesRef = useRef(null);
+  const projectionRef = useRef(null);
+  const rotationRef = useRef([0, -25]); // Initial rotation angles [longitude, latitude]
 
   useEffect(() => {
-    const currentMount = mountRef.current;
-    if (!currentMount) return;
+    if (!canvasRef.current || !containerRef.current) return;
 
-    // Dimensions
-    const width = currentMount.clientWidth;
-    const height = currentMount.clientHeight;
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    const context = canvas.getContext('2d');
+    if (!context) return;
 
-    // Scene
-    const scene = new THREE.Scene();
+    // Define responsive dimensions
+    let width = container.clientWidth;
+    let height = container.clientHeight || 450;
+    let radius = Math.min(width, height) / 2.3;
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.z = 220;
+    // Scale canvas for High-DPI screens
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    context.scale(dpr, dpr);
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    currentMount.appendChild(renderer.domElement);
+    // Initialize projection
+    const projection = d3
+      .geoOrthographic()
+      .scale(radius)
+      .translate([width / 2, height / 2])
+      .clipAngle(90)
+      .rotate(rotationRef.current);
 
-    // Globe Group
-    const globeGroup = new THREE.Group();
-    scene.add(globeGroup);
+    projectionRef.current = projection;
 
-    // Procedural Glowing wireframe Sphere (Earth Base)
-    const globeGeo = new THREE.SphereGeometry(60, 32, 32);
-    
-    // Core dark solid sphere for depth
-    const globeCoreMat = new THREE.MeshBasicMaterial({
-      color: 0x050a15,
-      transparent: true,
-      opacity: 0.8
-    });
-    const coreMesh = new THREE.Mesh(globeGeo, globeCoreMat);
-    globeGroup.add(coreMesh);
+    const path = d3.geoPath().projection(projection).context(context);
 
-    // Grid Overlay Sphere
-    const globeMat = new THREE.MeshBasicMaterial({
-      color: 0x00f0ff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.15
-    });
-    const globeMesh = new THREE.Mesh(globeGeo, globeMat);
-    globeGroup.add(globeMesh);
-
-    // Equatorial Ring
-    const ringGeo = new THREE.RingGeometry(65, 66, 64);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0x00f0ff,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.25
-    });
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh.rotation.x = Math.PI / 2;
-    globeGroup.add(ringMesh);
-
-    // Helper: Convert Lat/Lng to Vector3
-    const latLngToVector3 = (lat, lng, radius) => {
-      const phi = (90 - lat) * (Math.PI / 180);
-      const theta = (lng + 180) * (Math.PI / 180);
-
-      const x = -(radius * Math.sin(phi) * Math.sin(theta));
-      const y = radius * Math.cos(phi);
-      const z = radius * Math.sin(phi) * Math.cos(theta);
-
-      return new THREE.Vector3(x, y, z);
+    // Polygon inclusion helpers for halftone dots
+    const pointInPolygon = (point, polygon) => {
+      const [x, y] = point;
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const [xi, yi] = polygon[i];
+        const [xj, yj] = polygon[j];
+        if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+          inside = !inside;
+        }
+      }
+      return inside;
     };
 
-    // Plot pins for all sites
-    const pinsGroup = new THREE.Group();
-    globeGroup.add(pinsGroup);
-
-    LAUNCH_SITES.forEach((site) => {
-      const position = latLngToVector3(site.lat, site.lng, 60);
-
-      // Create glowing pin dot
-      const pinGeo = new THREE.SphereGeometry(1.8, 8, 8);
-      const pinMat = new THREE.MeshBasicMaterial({
-        color: site.id === 'starbase' ? 0xff6b00 : 0x00f0ff,
-        transparent: true,
-        opacity: 0.9
-      });
-      const pinMesh = new THREE.Mesh(pinGeo, pinMat);
-      pinMesh.position.copy(position);
-      
-      // Save metadata on mesh for raycasting
-      pinMesh.userData = { site };
-      pinsGroup.add(pinMesh);
-
-      // Trajectory paths: Draw Bezier arches emerging from the launch sites
-      const destination = latLngToVector3(site.lat + 15, site.lng + 40, 75); // Target space point
-      
-      // Control point for curve arch height
-      const midPoint = new THREE.Vector3().addVectors(position, destination).multiplyScalar(0.5).normalize().multiplyScalar(80);
-      
-      const curve = new THREE.QuadraticBezierCurve3(position, midPoint, destination);
-      const curvePoints = curve.getPoints(30);
-      const curveGeo = new THREE.BufferGeometry().setFromPoints(curvePoints);
-      
-      const curveMat = new THREE.LineBasicMaterial({
-        color: site.id === 'starbase' ? 0xff6b00 : 0x00f0ff,
-        transparent: true,
-        opacity: 0.35
-      });
-      
-      const line = new THREE.Line(curveGeo, curveMat);
-      globeGroup.add(line);
-    });
-
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-
-    const dirLight = new THREE.DirectionalLight(0x00f0ff, 0.8);
-    dirLight.position.set(5, 3, 5);
-    scene.add(dirLight);
-
-    // Mouse Interaction / Rotation control
-    let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
-
-    const handleMouseDown = (e) => {
-      isDragging = true;
+    const pointInFeature = (point, feature) => {
+      const geometry = feature.geometry;
+      if (geometry.type === 'Polygon') {
+        const coordinates = geometry.coordinates;
+        if (!pointInPolygon(point, coordinates[0])) return false;
+        for (let i = 1; i < coordinates.length; i++) {
+          if (pointInPolygon(point, coordinates[i])) return false;
+        }
+        return true;
+      } else if (geometry.type === 'MultiPolygon') {
+        for (const polygon of geometry.coordinates) {
+          if (pointInPolygon(point, polygon[0])) {
+            let inHole = false;
+            for (let i = 1; i < polygon.length; i++) {
+              if (pointInPolygon(point, polygon[i])) {
+                inHole = true;
+                break;
+              }
+            }
+            if (!inHole) return true;
+          }
+        }
+        return false;
+      }
+      return false;
     };
 
-    const handleMouseMove = (e) => {
-      const deltaMove = {
-        x: e.offsetX - previousMousePosition.x,
-        y: e.offsetY - previousMousePosition.y
-      };
+    const generateDotsInPolygon = (feature, dotSpacing = 16) => {
+      const dots = [];
+      const bounds = d3.geoBounds(feature);
+      const [[minLng, minLat], [maxLng, maxLat]] = bounds;
 
-      if (isDragging) {
-        // Rotate globe group based on mouse drag movement
-        globeGroup.rotation.y += deltaMove.x * 0.005;
-        globeGroup.rotation.x += deltaMove.y * 0.005;
+      // Density step size
+      const stepSize = dotSpacing * 0.12;
+
+      for (let lng = minLng; lng <= maxLng; lng += stepSize) {
+        for (let lat = minLat; lat <= maxLat; lat += stepSize) {
+          const point = [lng, lat];
+          if (pointInFeature(point, feature)) {
+            dots.push(point);
+          }
+        }
+      }
+      return dots;
+    };
+
+    let animationFrameId;
+    let t = 0;
+
+    const render = () => {
+      t += 0.05;
+      context.clearRect(0, 0, width, height);
+
+      const currentScale = projection.scale();
+      const scaleFactor = currentScale / radius;
+
+      // Draw ocean space (Globe Base)
+      context.beginPath();
+      context.arc(width / 2, height / 2, currentScale, 0, 2 * Math.PI);
+      context.fillStyle = '#020204'; // Ocean void color
+      context.fill();
+
+      // Outer atmosphere halo glow (glowing orange border ring)
+      context.strokeStyle = 'rgba(255, 158, 0, 0.3)';
+      context.lineWidth = 2.5 * scaleFactor;
+      context.stroke();
+
+      // Soft inner glow layer
+      context.beginPath();
+      context.arc(width / 2, height / 2, currentScale - 1, 0, 2 * Math.PI);
+      context.strokeStyle = 'rgba(255, 64, 0, 0.15)';
+      context.lineWidth = 5 * scaleFactor;
+      context.stroke();
+
+      if (landFeaturesRef.current) {
+        // Draw graticule grid (Longitude/Latitude wireframe lines)
+        const graticule = d3.geoGraticule()();
+        context.beginPath();
+        path(graticule);
+        context.strokeStyle = 'rgba(255, 158, 0, 0.04)';
+        context.lineWidth = 0.8 * scaleFactor;
+        context.stroke();
+
+        // Draw land border outlines
+        context.beginPath();
+        landFeaturesRef.current.features.forEach((feature) => {
+          path(feature);
+        });
+        context.strokeStyle = 'rgba(255, 158, 0, 0.15)';
+        context.lineWidth = 1 * scaleFactor;
+        context.stroke();
+
+        // Draw Dotted Land Mass (Halftone Points)
+        context.fillStyle = 'rgba(255, 158, 0, 0.65)';
+        dotsRef.current.forEach((dot) => {
+          // Check visible front hemisphere projection bounds
+          const projected = projection(dot);
+          if (projected) {
+            const [x, y] = projected;
+            // Draw only if dot is inside the circular clipping radius
+            const dist = Math.hypot(x - width / 2, y - height / 2);
+            if (dist < currentScale) {
+              context.beginPath();
+              context.arc(x, y, 1.3 * scaleFactor, 0, 2 * Math.PI);
+              context.fill();
+            }
+          }
+        });
       }
 
-      previousMousePosition = {
-        x: e.offsetX,
-        y: e.offsetY
-      };
+      // Draw Launch Sites & Trajectory curves
+      const center = [-projection.rotate()[0], -projection.rotate()[1]];
+      
+      LAUNCH_SITES.forEach((site) => {
+        // Calculate geodesic distance to center to check hemisphere visibility
+        const isVisible = d3.geoDistance([site.lng, site.lat], center) < Math.PI / 2;
+        if (isVisible) {
+          const projected = projection([site.lng, site.lat]);
+          if (projected) {
+            const [x, y] = projected;
+
+            // Draw interactive glowing ring
+            const pulse = 8 + Math.sin(t * 4) * 3;
+            context.beginPath();
+            context.arc(x, y, pulse, 0, 2 * Math.PI);
+            context.fillStyle = site.id === 'starbase' ? 'rgba(255, 64, 0, 0.18)' : 'rgba(255, 158, 0, 0.15)';
+            context.fill();
+
+            // Draw pin core dot
+            context.beginPath();
+            context.arc(x, y, 3.5, 0, 2 * Math.PI);
+            context.fillStyle = selectedSite.id === site.id
+              ? '#ff4000'
+              : site.id === 'starbase' ? '#ff4000' : '#ffa200';
+            context.fill();
+
+            // Draw text tag label
+            context.fillStyle = selectedSite.id === site.id ? '#ffffff' : '#94a3b8';
+            context.font = selectedSite.id === site.id ? 'bold 10px monospace' : '9px monospace';
+            context.fillText(site.name.split(' ')[0], x + 8, y + 3);
+
+            // Draw active geodesic trajectory curves emerging into orbit
+            const destLng = site.lng + 30;
+            const destLat = site.lat + 15;
+            const pDest = projection([destLng, destLat]);
+
+            if (pDest) {
+              const dx = pDest[0] - x;
+              const dy = pDest[1] - y;
+              
+              // Calculate normal vectors to bend the curve outwards
+              const mx = (x + pDest[0]) / 2 - dy * 0.35;
+              const my = (y + pDest[1]) / 2 + dx * 0.35;
+
+              context.beginPath();
+              context.moveTo(x, y);
+              context.quadraticCurveTo(mx, my, pDest[0], pDest[1]);
+              context.strokeStyle = selectedSite.id === site.id 
+                ? 'rgba(255, 64, 0, 0.55)' 
+                : 'rgba(255, 158, 0, 0.22)';
+              context.lineWidth = selectedSite.id === site.id ? 2 : 1;
+              context.stroke();
+
+              // Draw terminal satellite/orbit node
+              context.beginPath();
+              context.arc(pDest[0], pDest[1], 1.8, 0, 2 * Math.PI);
+              context.fillStyle = selectedSite.id === site.id ? '#ff4000' : '#ffa200';
+              context.fill();
+            }
+          }
+        }
+      });
     };
 
-    const handleMouseUp = () => {
-      isDragging = false;
-    };
+    // Load geometry and generate land mas dots
+    const loadWorldData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          'https://raw.githubusercontent.com/martynafford/natural-earth-geojson/refs/heads/master/110m/physical/ne_110m_land.json'
+        );
+        if (!response.ok) throw new Error('Geodesic datalink timeout');
+        
+        const landData = await response.json();
+        landFeaturesRef.current = landData;
 
-    // Add event listeners to container
-    const canvasContainer = renderer.domElement;
-    canvasContainer.addEventListener('mousedown', handleMouseDown);
-    canvasContainer.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+        // Generate landmass halftone dots
+        const dots = [];
+        landData.features.forEach((feature) => {
+          const generated = generateDotsInPolygon(feature, 16);
+          generated.forEach(([lng, lat]) => {
+            dots.push([lng, lat]);
+          });
+        });
 
-    // Auto slow rotation when not dragging
-    let animationId;
-    const animate = () => {
-      animationId = requestAnimationFrame(animate);
-
-      if (!isDragging) {
-        globeGroup.rotation.y += 0.001; // slow spin
+        dotsRef.current = dots;
+        setIsLoading(false);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || 'Geodesic connection failed');
+        setIsLoading(false);
       }
-
-      renderer.render(scene, camera);
     };
-    animate();
+
+    // Auto-spin parameters
+    let autoRotate = true;
+    const rotationSpeed = 0.18;
+
+    const autoSpin = () => {
+      if (autoRotate) {
+        rotationRef.current[0] += rotationSpeed;
+        projection.rotate(rotationRef.current);
+        render();
+      }
+      animationFrameId = requestAnimationFrame(autoSpin);
+    };
+
+    // Interactions
+    const handleMouseDown = (event) => {
+      autoRotate = false;
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startRotation = [...rotationRef.current];
+
+      const handleMouseMove = (moveEvent) => {
+        const sensitivity = 0.25;
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+
+        rotationRef.current[0] = startRotation[0] + dx * sensitivity;
+        rotationRef.current[1] = Math.max(-60, Math.min(60, startRotation[1] - dy * sensitivity));
+
+        projection.rotate(rotationRef.current);
+        render();
+      };
+
+      const handleMouseUp = () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        // Resume auto-rotation after 2 seconds of inactivity
+        setTimeout(() => {
+          autoRotate = true;
+        }, 2000);
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    // Mouse wheel zoom
+    const handleWheel = (event) => {
+      event.preventDefault();
+      const scaleFactor = event.deltaY > 0 ? 0.93 : 1.07;
+      const newRadius = Math.max(radius * 0.4, Math.min(radius * 3.5, projection.scale() * scaleFactor));
+      projection.scale(newRadius);
+      render();
+    };
+
+    // Mouse hover coordinates checking
+    const handleMouseMoveHover = (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+
+      const center = [-projection.rotate()[0], -projection.rotate()[1]];
+      let foundSite = null;
+
+      LAUNCH_SITES.forEach((site) => {
+        const isVisible = d3.geoDistance([site.lng, site.lat], center) < Math.PI / 2;
+        if (isVisible) {
+          const projected = projection([site.lng, site.lat]);
+          if (projected) {
+            const [x, y] = projected;
+            const dist = Math.hypot(mouseX - x, mouseY - y);
+            if (dist < 12) {
+              foundSite = site;
+            }
+          }
+        }
+      });
+
+      setHoveredSite(foundSite);
+      canvas.style.cursor = foundSite ? 'pointer' : 'grab';
+    };
+
+    // Mouse click selection checking
+    const handleCanvasClick = (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      const clickY = event.clientY - rect.top;
+
+      const center = [-projection.rotate()[0], -projection.rotate()[1]];
+      let clickedSite = null;
+      let minDistance = 14;
+
+      LAUNCH_SITES.forEach((site) => {
+        const isVisible = d3.geoDistance([site.lng, site.lat], center) < Math.PI / 2;
+        if (isVisible) {
+          const projected = projection([site.lng, site.lat]);
+          if (projected) {
+            const [x, y] = projected;
+            const dist = Math.hypot(clickX - x, clickY - y);
+            if (dist < minDistance) {
+              minDistance = dist;
+              clickedSite = site;
+            }
+          }
+        }
+      });
+
+      if (clickedSite) {
+        setSelectedSite(clickedSite);
+      }
+    };
 
     // Resize Handler
     const handleResize = () => {
-      if (!mountRef.current) return;
-      const w = mountRef.current.clientWidth;
-      const h = mountRef.current.clientHeight;
+      width = container.clientWidth;
+      height = container.clientHeight || 450;
+      radius = Math.min(width, height) / 2.3;
 
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.scale(dpr, dpr);
+
+      projection.scale(radius).translate([width / 2, height / 2]);
+      render();
     };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    canvas.addEventListener('mousemove', handleMouseMoveHover);
+    canvas.addEventListener('click', handleCanvasClick);
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
+    // Initial sequence
+    loadWorldData().then(() => {
+      autoSpin();
+    });
+
     return () => {
-      cancelAnimationFrame(animationId);
+      cancelAnimationFrame(animationFrameId);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('mousemove', handleMouseMoveHover);
+      canvas.removeEventListener('click', handleCanvasClick);
       window.removeEventListener('resize', handleResize);
-      canvasContainer.removeEventListener('mousedown', handleMouseDown);
-      canvasContainer.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      
-      if (currentMount && renderer.domElement) {
-        currentMount.removeChild(renderer.domElement);
-      }
-      
-      globeGeo.dispose();
-      globeMat.dispose();
-      globeCoreMat.dispose();
-      ringGeo.dispose();
-      ringMat.dispose();
-      renderer.dispose();
     };
   }, []);
 
@@ -221,20 +427,50 @@ export default function Globe3D() {
           GLOBAL REACH TELEMETRY
         </div>
         <h2 className="text-2xl md:text-3xl font-bold font-display text-white uppercase">
-          INTERACTIVE EARTH GLOBE
+          INTERACTIVE DOTTED GLOBE
         </h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-        {/* Left Side: Three.js Canvas Container */}
-        <div className="col-span-1 lg:col-span-7 bg-space-black/45 border border-white/5 rounded-lg overflow-hidden flex items-center justify-center relative min-h-[400px] md:min-h-[500px]">
-          <div className="absolute top-4 left-4 text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
-            <Globe size={12} className="text-neon-cyan animate-spin-slow" />
-            <span>DRAG GLOBE TO ROTATE</span>
+        {/* Left Side: Globe Canvas Container */}
+        <div 
+          ref={containerRef}
+          className="col-span-1 lg:col-span-7 bg-space-black/45 border border-white/5 rounded-lg overflow-hidden flex items-center justify-center relative min-h-[400px] md:min-h-[500px]"
+        >
+          {/* Header readout */}
+          <div className="absolute top-4 left-4 text-[10px] text-slate-500 font-mono flex items-center gap-1.5 z-20">
+            <Globe size={12} className="text-neon-cyan animate-pulse" />
+            <span>DRAG GLOBE TO ROTATE • SCROLL TO ZOOM</span>
           </div>
 
-          {/* Mount point for ThreeJS */}
-          <div ref={mountRef} className="w-full h-[400px] md:h-[500px] cursor-grab active:cursor-grabbing" />
+          {isLoading && (
+            <div className="absolute inset-0 bg-[#020204]/90 flex flex-col items-center justify-center text-xs font-mono text-neon-cyan z-20">
+              <div className="animate-spin h-5 w-5 border-2 border-neon-cyan border-t-transparent rounded-full mb-3" />
+              <span>ESTABLISHING GEODESIC LINK...</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="absolute inset-0 bg-[#020204]/90 flex flex-col items-center justify-center text-xs font-mono text-rose-400 p-4 text-center z-20">
+              <span>LINK ERROR: {error}</span>
+            </div>
+          )}
+
+          {/* Interactive Canvas */}
+          <canvas
+            ref={canvasRef}
+            className="w-full h-[400px] md:h-[500px] cursor-grab active:cursor-grabbing z-10"
+          />
+
+          {/* Floating Hover HUD Tooltip */}
+          {hoveredSite && (
+            <div 
+              className="absolute top-4 right-4 bg-cyber-slate/90 border border-neon-cyan/30 text-white font-mono text-[9px] px-2.5 py-1.5 rounded shadow-lg pointer-events-none z-30"
+            >
+              <div className="font-bold uppercase text-neon-cyan">{hoveredSite.name}</div>
+              <div className="text-slate-400 mt-0.5">{hoveredSite.location}</div>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Site Info details HUD */}
@@ -250,7 +486,7 @@ export default function Globe3D() {
                   onClick={() => setSelectedSite(site)}
                   className={`px-3 py-1.5 border text-xs rounded transition-all cursor-pointer ${
                     selectedSite.id === site.id
-                      ? 'bg-neon-cyan/15 text-neon-cyan border-neon-cyan/40 shadow-[0_0_10px_rgba(0,240,255,0.1)]'
+                      ? 'bg-neon-cyan/15 text-neon-cyan border-neon-cyan/40 shadow-[0_0_10px_rgba(255,158,0,0.15)]'
                       : 'bg-cyber-slate/20 text-slate-400 border-white/10 hover:border-white/20'
                   }`}
                 >
@@ -266,7 +502,7 @@ export default function Globe3D() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4 }}
-            className="bg-cyber-slate/25 border border-neon-cyan/20 backdrop-blur-md p-6 rounded-lg relative overflow-hidden scanlines"
+            className="bg-cyber-slate/25 border border-neon-cyan/20 backdrop-blur-md p-6 rounded-lg relative overflow-hidden scanlines animate-fade-in-up"
           >
             {/* Corner glows */}
             <div className="absolute top-0 right-0 w-16 h-16 bg-neon-cyan/5 rounded-full blur-xl pointer-events-none" />

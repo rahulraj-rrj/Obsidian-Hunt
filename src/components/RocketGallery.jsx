@@ -1,7 +1,30 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Info, Gauge, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, Gauge, Zap, Orbit, Award } from 'lucide-react';
 import { ROCKETS } from '../data/mockLaunchData';
+import FlippingCard from './FlippingCard';
+
+// Normalization helpers for specifications progress bars
+const getThrustPercent = (thrustStr) => {
+  const val = parseInt(thrustStr.replace(/[^0-9]/g, ''), 10);
+  return Math.min(100, Math.max(10, Math.round((val / 75000) * 100)));
+};
+
+const getHeightPercent = (heightStr) => {
+  const val = parseInt(heightStr.replace(/[^0-9]/g, ''), 10);
+  return Math.min(100, Math.max(10, Math.round((val / 130) * 100)));
+};
+
+const getMassPercent = (massStr) => {
+  const val = parseInt(massStr.replace(/[^0-9]/g, ''), 10);
+  return Math.min(100, Math.max(10, Math.round((val / 5000000) * 100)));
+};
+
+const getPayloadPercent = (payloadStr) => {
+  if (!payloadStr) return 40;
+  const val = parseInt(payloadStr.replace(/[^0-9]/g, ''), 10);
+  return Math.min(100, Math.max(15, Math.round((val / 250000) * 100)));
+};
 
 export default function RocketGallery() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -37,39 +60,183 @@ export default function RocketGallery() {
 
       {/* Carousel Container */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Side: Rocket Image Card (col-5) */}
-        <div className="lg:col-span-5 relative h-[380px] md:h-[480px] bg-cyber-slate/15 border border-white/10 rounded-lg overflow-hidden flex items-center justify-center group shadow-2xl">
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={activeRocket.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-              src={activeRocket.image}
-              alt={activeRocket.name}
-              className="absolute inset-0 w-full h-full object-cover opacity-90"
-            />
-          </AnimatePresence>
+        {/* Left Side: Flipping Rocket Card (col-5) */}
+        <div className="lg:col-span-5 relative h-[380px] md:h-[480px]">
+          <FlippingCard
+            className="w-full h-full"
+            front={
+              <div className="relative w-full h-full bg-cyber-slate/15 border border-white/10 rounded-lg overflow-hidden flex items-center justify-center group shadow-2xl">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={activeRocket.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4 }}
+                    src={activeRocket.image}
+                    alt={activeRocket.name}
+                    className="absolute inset-0 w-full h-full object-cover opacity-95 group-hover:scale-105 transition-transform duration-700"
+                  />
+                </AnimatePresence>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-space-black via-space-black/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-space-black via-space-black/40 to-transparent" />
 
-          {/* Navigation Overlay Buttons */}
-          <div className="absolute inset-x-4 bottom-6 flex justify-between items-center z-20">
+                {/* Overlays on Front face */}
+                <div className="absolute top-4 left-4 z-10 text-left">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">FLEET CLASS</span>
+                  <span className="text-xl font-bold font-display text-white uppercase tracking-wider glow-cyan">{activeRocket.name}</span>
+                </div>
+
+                <div className="absolute top-4 right-4 z-10 bg-space-black/75 backdrop-blur-sm border border-white/10 px-2.5 py-1 rounded text-[8px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  SYSTEM READY
+                </div>
+
+                <div className="absolute bottom-16 left-4 right-4 z-10 text-left">
+                  <span className="text-[9px] font-bold text-rocket-orange uppercase tracking-wider block">LAUNCH OPERATOR</span>
+                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">{activeRocket.manufacturer}</span>
+                  <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-2">
+                    <span className="flex items-center gap-1"><Award size={10} className="text-neon-cyan" /> {activeRocket.successRate}% Success</span>
+                    <span>&bull;</span>
+                    <span className="flex items-center gap-1"><Orbit size={10} /> Active Staging</span>
+                  </div>
+                </div>
+
+                {/* Micro-Interaction Indicator */}
+                <div className="absolute bottom-20 right-4 z-10">
+                  <span className="text-[8px] text-slate-400 font-mono tracking-widest bg-space-black/90 border border-white/10 px-2 py-1 rounded flex items-center gap-1 animate-pulse">
+                    <Info size={10} className="text-neon-cyan" /> SCAN CHASSIS (HOVER)
+                  </span>
+                </div>
+              </div>
+            }
+            back={
+              <div className="relative w-full h-full bg-nebula-navy border border-rocket-orange/30 rounded-lg overflow-hidden p-6 text-left flex flex-col justify-between shadow-2xl scanlines">
+                <div className="absolute inset-0 cyber-grid opacity-10 pointer-events-none" />
+
+                {/* Back Header */}
+                <div className="flex justify-between items-start border-b border-white/10 pb-3 z-10">
+                  <div>
+                    <span className="text-[8px] text-rocket-orange font-bold tracking-widest uppercase">COCKPIT ENGINE TELEMETRY</span>
+                    <h4 className="text-lg font-bold font-display text-white">{activeRocket.name} CORE</h4>
+                  </div>
+                  <span className="text-[8px] font-mono border border-rocket-orange/50 px-2 py-0.5 rounded text-rocket-orange animate-pulse">DIAGNOSTIC STATUS // ONLINE</span>
+                </div>
+
+                {/* Custom glowing cockpit gauges */}
+                <div className="grid grid-cols-2 gap-4 py-4 z-10 flex-1">
+                  {/* Gauge 1: Thrust */}
+                  <div className="bg-space-black/60 border border-white/5 rounded p-3 flex flex-col justify-between hover:border-rocket-orange/20 transition-all duration-300">
+                    <div>
+                      <span className="text-[8px] text-slate-500 block uppercase font-mono">THRUST CAPABILITY</span>
+                      <span className="text-sm font-bold text-white mt-1 block tabular-nums">{activeRocket.thrust}</span>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[8px] text-slate-500 mb-1">
+                        <span>LOAD</span>
+                        <span>{getThrustPercent(activeRocket.thrust)}%</span>
+                      </div>
+                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-rocket-orange to-neon-cyan h-full rounded-full transition-all duration-1000" 
+                          style={{ width: `${getThrustPercent(activeRocket.thrust)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gauge 2: Height */}
+                  <div className="bg-space-black/60 border border-white/5 rounded p-3 flex flex-col justify-between hover:border-rocket-orange/20 transition-all duration-300">
+                    <div>
+                      <span className="text-[8px] text-slate-500 block uppercase font-mono">VEHICLE HEIGHT</span>
+                      <span className="text-sm font-bold text-white mt-1 block tabular-nums">{activeRocket.height}</span>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[8px] text-slate-500 mb-1">
+                        <span>SCALE</span>
+                        <span>{getHeightPercent(activeRocket.height)}%</span>
+                      </div>
+                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-rocket-orange to-neon-cyan h-full rounded-full transition-all duration-1000" 
+                          style={{ width: `${getHeightPercent(activeRocket.height)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gauge 3: Mass */}
+                  <div className="bg-space-black/60 border border-white/5 rounded p-3 flex flex-col justify-between hover:border-rocket-orange/20 transition-all duration-300">
+                    <div>
+                      <span className="text-[8px] text-slate-500 block uppercase font-mono">LIFT MASS</span>
+                      <span className="text-sm font-bold text-white mt-1 block truncate tabular-nums">{activeRocket.mass}</span>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[8px] text-slate-500 mb-1">
+                        <span>MASS</span>
+                        <span>{getMassPercent(activeRocket.mass)}%</span>
+                      </div>
+                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-rocket-orange to-neon-cyan h-full rounded-full transition-all duration-1000" 
+                          style={{ width: `${getMassPercent(activeRocket.mass)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gauge 4: Payload */}
+                  <div className="bg-space-black/60 border border-white/5 rounded p-3 flex flex-col justify-between hover:border-rocket-orange/20 transition-all duration-300">
+                    <div>
+                      <span className="text-[8px] text-slate-500 block uppercase font-mono">PAYLOAD LEO</span>
+                      <span className="text-sm font-bold text-white mt-1 block truncate tabular-nums">{activeRocket.payloadLeo}</span>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[8px] text-slate-500 mb-1">
+                        <span>VOLUME</span>
+                        <span>{getPayloadPercent(activeRocket.payloadLeo)}%</span>
+                      </div>
+                      <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-rocket-orange to-neon-cyan h-full rounded-full transition-all duration-1000" 
+                          style={{ width: `${getPayloadPercent(activeRocket.payloadLeo)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Back Footer */}
+                <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[8px] text-slate-400 z-10 font-mono">
+                  <span className="truncate max-w-[180px]">PROP: {activeRocket.propellant.split('/')[0]}</span>
+                  <span className="text-rocket-orange font-bold uppercase">STAGES: {activeRocket.stages}</span>
+                </div>
+              </div>
+            }
+          />
+
+          {/* Navigation Overlay Buttons (Absolute positioned above card) */}
+          <div className="absolute inset-x-4 bottom-4 flex justify-between items-center z-30 pointer-events-none">
             <button
-              onClick={handlePrev}
-              className="p-2 bg-space-black/80 hover:bg-neon-cyan/20 border border-white/10 hover:border-neon-cyan/30 rounded text-slate-300 hover:text-neon-cyan transition-all cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation(); // Avoid triggering card flip on click
+                handlePrev();
+              }}
+              className="p-2 bg-space-black/80 hover:bg-neon-cyan/20 border border-white/10 hover:border-neon-cyan/30 rounded text-slate-300 hover:text-neon-cyan transition-all pointer-events-auto cursor-pointer"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </button>
-            <span className="text-[10px] bg-space-black/75 px-3 py-1.5 rounded border border-white/10 text-slate-300 uppercase tracking-widest">
+            <span className="text-[9px] bg-space-black/90 px-3 py-1 rounded border border-white/10 text-slate-300 uppercase tracking-widest font-mono pointer-events-auto">
               {activeRocket.name}
             </span>
             <button
-              onClick={handleNext}
-              className="p-2 bg-space-black/80 hover:bg-neon-cyan/20 border border-white/10 hover:border-neon-cyan/30 rounded text-slate-300 hover:text-neon-cyan transition-all cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation(); // Avoid triggering card flip on click
+                handleNext();
+              }}
+              className="p-2 bg-space-black/80 hover:bg-neon-cyan/20 border border-white/10 hover:border-neon-cyan/30 rounded text-slate-300 hover:text-neon-cyan transition-all pointer-events-auto cursor-pointer"
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

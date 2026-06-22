@@ -12,6 +12,7 @@ import LaunchHistory from './components/LaunchHistory';
 import SearchOverlay from './components/SearchOverlay';
 import ConsoleModal from './components/ConsoleModal';
 import Footer from './components/Footer';
+import ShaderBackground from './components/ShaderBackground';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -64,31 +65,39 @@ export default function App() {
   };
 
   return (
-    <div className="relative bg-[#020204] text-slate-100 min-h-screen selection:bg-neon-cyan/30 selection:text-white">
-      {/* Top navbar */}
-      <Navbar 
-        onSearchClick={() => setSearchOpen(true)} 
-        activeSection={activeSection}
-        onNavigate={handleScrollToSection}
-      />
+    <div className="relative bg-[#020204] text-slate-100 min-h-screen selection:bg-orange-500/30 selection:text-white overflow-x-hidden">
+      {/* Interactive WebGL Shader Background underlay */}
+      <ShaderBackground />
 
-      {/* Main Mission Control sections */}
-      <main className="pb-16 md:pb-0">
-        <Hero 
-          onExploreClick={() => handleScrollToSection('upcoming')} 
-          onWatchMission={handleSelectLaunch}
+      {/* Dark overlay to ensure perfect readability of text */}
+      <div className="fixed inset-0 bg-[#020204]/80 backdrop-blur-[1px] pointer-events-none z-0" />
+
+      <div className="relative z-10 w-full">
+        {/* Top navbar */}
+        <Navbar 
+          onSearchClick={() => setSearchOpen(true)} 
+          activeSection={activeSection}
+          onNavigate={handleScrollToSection}
         />
-        <Stats />
-        <UpcomingLaunches onSelectLaunch={handleSelectLaunch} />
-        <FeaturedMission onSelectLaunch={handleSelectLaunch} />
-        <Globe3D />
-        <Timeline onSelectLaunch={handleSelectLaunch} />
-        <RocketGallery />
-        <LaunchHistory onSelectLaunch={handleSelectLaunch} />
-      </main>
 
-      {/* Standard footer & mobile docks */}
-      <Footer onNavigate={handleScrollToSection} />
+        {/* Main Mission Control sections */}
+        <main className="pb-16 md:pb-0">
+          <Hero 
+            onExploreClick={() => handleScrollToSection('upcoming')} 
+            onWatchMission={handleSelectLaunch}
+          />
+          <Stats />
+          <UpcomingLaunches onSelectLaunch={handleSelectLaunch} />
+          <FeaturedMission onSelectLaunch={handleSelectLaunch} />
+          <Globe3D />
+          <Timeline onSelectLaunch={handleSelectLaunch} />
+          <RocketGallery />
+          <LaunchHistory onSelectLaunch={handleSelectLaunch} />
+        </main>
+
+        {/* Standard footer & mobile docks */}
+        <Footer onNavigate={handleScrollToSection} />
+      </div>
 
       {/* Modals & Overlays */}
       <SearchOverlay 

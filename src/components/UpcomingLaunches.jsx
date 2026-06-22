@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Orbit, Clock, Terminal } from 'lucide-react';
 import { UPCOMING_LAUNCHES } from '../data/mockLaunchData';
+import ImageReveal from './ImageReveal';
 
 // Individual Countdown Timer Component for each card
 function CardCountdown({ launchDate }) {
@@ -74,14 +75,13 @@ export default function UpcomingLaunches({ onSelectLaunch }) {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: idx * 0.1 }}
             whileHover={{ y: -6 }}
-            className="snap-start shrink-0 w-80 md:w-96 bg-cyber-slate/30 border border-white/10 hover:border-neon-cyan/40 backdrop-blur-md rounded-lg overflow-hidden group flex flex-col justify-between transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(0,240,255,0.1)]"
+            className="snap-start shrink-0 w-80 md:w-96 bg-cyber-slate/30 border border-white/10 hover:border-neon-cyan/40 backdrop-blur-md rounded-lg overflow-hidden group flex flex-col justify-between transition-all duration-300 shadow-lg hover:shadow-[0_0_20px_rgba(255,158,0,0.1)]"
           >
-            {/* Header image panel */}
             <div className="h-44 overflow-hidden relative border-b border-white/5">
-              <img 
+              <ImageReveal 
                 src={launch.image} 
                 alt={launch.missionName}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="w-full h-full"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-space-black via-space-black/40 to-transparent" />
               

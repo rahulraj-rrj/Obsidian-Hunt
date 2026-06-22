@@ -92,7 +92,7 @@ export default function ConsoleModal({ launch, onClose }) {
       }
 
       // Cyber Grid
-      ctx.strokeStyle = aborted ? 'rgba(239, 68, 68, 0.06)' : 'rgba(0, 240, 255, 0.06)';
+      ctx.strokeStyle = aborted ? 'rgba(239, 68, 68, 0.06)' : 'rgba(255, 158, 0, 0.06)';
       ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 30) {
         ctx.beginPath();
@@ -108,7 +108,7 @@ export default function ConsoleModal({ launch, onClose }) {
       }
 
       // Draw historical path based on ticks
-      ctx.strokeStyle = aborted ? '#ef4444' : '#00f0ff';
+      ctx.strokeStyle = aborted ? '#ef4444' : '#ffa200';
       ctx.lineWidth = 2;
       ctx.beginPath();
       
@@ -136,7 +136,7 @@ export default function ConsoleModal({ launch, onClose }) {
 
         // Draw current pulse tip
         const tip = curvePoints[curvePoints.length - 1];
-        ctx.fillStyle = aborted ? 'rgba(239, 68, 68, 0.3)' : 'rgba(0, 240, 255, 0.3)';
+        ctx.fillStyle = aborted ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 158, 0, 0.3)';
         ctx.beginPath();
         ctx.arc(tip.x, tip.y, 6 + Math.sin(t * 3) * 2, 0, Math.PI * 2);
         ctx.fill();
@@ -193,7 +193,7 @@ export default function ConsoleModal({ launch, onClose }) {
           } : {}}
           transition={{ duration: 0.4 }}
           className={`w-full max-w-4xl bg-cyber-slate/90 border rounded-lg shadow-2xl relative z-10 flex flex-col max-h-[90vh] overflow-hidden ${
-            aborted ? 'border-rose-500/40 shadow-[0_0_50px_rgba(239,68,68,0.2)]' : 'border-neon-cyan/20 shadow-[0_0_50px_rgba(0,240,255,0.15)]'
+            aborted ? 'border-rose-500/40 shadow-[0_0_50px_rgba(239,68,68,0.2)]' : 'border-neon-cyan/20 shadow-[0_0_50px_rgba(255,158,0,0.15)]'
           }`}
         >
           {/* Header */}

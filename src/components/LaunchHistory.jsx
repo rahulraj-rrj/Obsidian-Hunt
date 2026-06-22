@@ -91,7 +91,7 @@ export default function LaunchHistory({ onSelectLaunch }) {
               onClick={() => setFilter(type)}
               className={`px-3 py-1 border text-[10px] rounded transition-all cursor-pointer ${
                 filter === type
-                  ? 'bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30 shadow-[0_0_8px_rgba(0,240,255,0.1)]'
+                  ? 'bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30 shadow-[0_0_8px_rgba(255,158,0,0.1)]'
                   : 'bg-space-black/50 text-slate-400 border-white/10 hover:border-white/20'
               }`}
             >
